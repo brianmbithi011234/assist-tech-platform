@@ -1,191 +1,158 @@
 
-import { Link } from 'react-router-dom';
-import { ShoppingCart, Settings, Search } from 'lucide-react';
+import { ArrowRight, Star, Shield, Truck, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import Layout from '@/components/Layout';
+import { Link } from 'react-router-dom';
 
 const Index = () => {
-  const featuredProducts = [
+  const features = [
     {
-      id: '1',
-      name: 'MacBook Pro 16"',
-      price: 2499,
-      image: 'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=500&h=300&fit=crop',
-      description: 'Powerful laptop for professionals',
+      icon: Star,
+      title: 'Quality Products',
+      description: 'Curated selection of the latest technology from trusted brands'
     },
     {
-      id: '2',
-      name: 'iPhone 15 Pro',
-      price: 999,
-      image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=500&h=300&fit=crop',
-      description: 'Latest smartphone technology',
+      icon: Shield,
+      title: 'Warranty Protection',
+      description: 'Comprehensive warranty coverage on all our products'
     },
     {
-      id: '3',
-      name: 'Dell XPS 13',
-      price: 1299,
-      image: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=500&h=300&fit=crop',
-      description: 'Compact and powerful ultrabook',
+      icon: Truck,
+      title: 'Fast Delivery',
+      description: 'Quick and reliable delivery across Kenya'
     },
+    {
+      icon: Wrench,
+      title: 'Expert Repairs',
+      description: 'Professional repair services by certified technicians'
+    }
   ];
 
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-700">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-            <div className="text-center">
-              <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
-                Your Tech Hub
-              </h1>
-              <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
-                Discover the latest technology products and professional repair services all in one place
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to="/products">
-                  <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100">
-                    <ShoppingCart className="mr-2 h-5 w-5" />
-                    Shop Products
-                  </Button>
-                </Link>
-                <Link to="/services">
-                  <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600">
-                    <Settings className="mr-2 h-5 w-5" />
-                    Request Service
-                  </Button>
-                </Link>
-              </div>
+      <section className="bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+              Welcome to <span className="text-blue-600">Betmo Enterprises</span>
+            </h1>
+            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              Your trusted partner for cutting-edge technology products and professional repair services. 
+              Discover premium devices with unmatched quality and expert support.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link to="/products">
+                <Button size="lg" className="text-lg px-8">
+                  Shop Now
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </Link>
+              <Link to="/services">
+                <Button variant="outline" size="lg" className="text-lg px-8">
+                  Repair Services
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-16 bg-white">
+      <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Why Choose TechStore?
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Why Choose Betmo Enterprises?
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              We provide comprehensive solutions for all your technology needs
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              We're committed to providing exceptional technology solutions and services that exceed your expectations.
             </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="text-center hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <ShoppingCart className="h-6 w-6 text-blue-600" />
-                </div>
-                <CardTitle>Quality Products</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Premium technology products from trusted brands with real-time inventory tracking
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Settings className="h-6 w-6 text-green-600" />
-                </div>
-                <CardTitle>Expert Services</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Professional repair and maintenance services with real-time status tracking
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="text-center hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <Search className="h-6 w-6 text-purple-600" />
-                </div>
-                <CardTitle>Easy Tracking</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription>
-                  Track your orders and service requests in real-time with detailed status updates
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Products */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Featured Products
-            </h2>
-            <p className="text-xl text-gray-600">
-              Discover our most popular technology products
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {featuredProducts.map((product) => (
-              <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                <div className="aspect-video overflow-hidden">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <Card key={index} className="text-center hover:shadow-lg transition-shadow">
                 <CardHeader>
-                  <CardTitle className="text-lg">{product.name}</CardTitle>
-                  <CardDescription>{product.description}</CardDescription>
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <feature.icon className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <CardTitle className="text-xl">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex justify-between items-center">
-                    <span className="text-2xl font-bold text-blue-600">
-                      ${product.price}
-                    </span>
-                    <Link to={`/products/${product.id}`}>
-                      <Button>View Details</Button>
-                    </Link>
-                  </div>
+                  <CardDescription className="text-gray-600">
+                    {feature.description}
+                  </CardDescription>
                 </CardContent>
               </Card>
             ))}
           </div>
+        </div>
+      </section>
 
-          <div className="text-center mt-12">
-            <Link to="/products">
-              <Button size="lg">View All Products</Button>
-            </Link>
+      {/* Product Categories */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Explore Our Product Categories
+            </h2>
+            <p className="text-lg text-gray-600">
+              From laptops to gaming consoles, find everything you need for your digital lifestyle.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+            {[
+              { name: 'Laptops', image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=300&h=200&fit=crop' },
+              { name: 'Smartphones', image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300&h=200&fit=crop' },
+              { name: 'Tablets', image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=300&h=200&fit=crop' },
+              { name: 'Smart Speakers', image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop' },
+              { name: 'Televisions', image: 'https://images.unsplash.com/photo-1593784991095-a205069470b6?w=300&h=200&fit=crop' },
+              { name: 'Gaming', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=300&h=200&fit=crop' }
+            ].map((category, index) => (
+              <Link key={index} to="/products" className="group">
+                <Card className="hover:shadow-lg transition-all duration-300 group-hover:scale-105">
+                  <CardContent className="p-0">
+                    <div className="aspect-square overflow-hidden rounded-t-lg">
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                    </div>
+                    <div className="p-4 text-center">
+                      <h3 className="font-semibold text-gray-900">{category.name}</h3>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-gradient-to-r from-gray-900 to-blue-900 text-white">
+      <section className="bg-blue-600 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Ready to Get Started?
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Ready to Upgrade Your Tech?
           </h2>
-          <p className="text-xl mb-8 text-gray-300">
-            Join thousands of satisfied customers who trust us with their technology needs
+          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+            Discover our latest products and take advantage of our professional services. 
+            Your perfect tech solution is just a click away.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/products">
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700">
+              <Button size="lg" variant="secondary" className="text-lg px-8">
                 Browse Products
+                <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link to="/services">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-gray-900">
-                Request Service
+              <Button size="lg" variant="outline" className="text-lg px-8 border-white text-white hover:bg-white hover:text-blue-600">
+                Get Support
               </Button>
             </Link>
           </div>
