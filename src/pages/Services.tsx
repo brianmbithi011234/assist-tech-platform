@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 const Services = () => {
   const [formData, setFormData] = useState({
@@ -16,32 +18,65 @@ const Services = () => {
     deviceModel: '',
     serialNumber: '',
     issueDescription: '',
-    customerName: '',
-    customerEmail: '',
-    customerPhone: ''
   });
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Generate a random tracking number
-    const trackingNumber = 'SRV-' + Date.now().toString().slice(-6);
     
-    toast({
-      title: 'Service Request Submitted',
-      description: `Your tracking number is: ${trackingNumber}`,
-    });
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please log in to submit a service request.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    // Reset form
-    setFormData({
-      deviceType: '',
-      deviceModel: '',
-      serialNumber: '',
-      issueDescription: '',
-      customerName: '',
-      customerEmail: '',
-      customerPhone: ''
-    });
+    setLoading(true);
+    
+    try {
+      // Generate a service number
+      const serviceNumber = 'SRV-' + Date.now().toString().slice(-6);
+      
+      const { error } = await supabase
+        .from('service_requests')
+        .insert({
+          user_id: user.id,
+          service_number: serviceNumber,
+          device_type: formData.deviceType,
+          device_model: formData.deviceModel,
+          serial_number: formData.serialNumber || null,
+          issue_description: formData.issueDescription,
+          status: 'received'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Service Request Submitted',
+        description: `Your service request has been submitted. Tracking number: ${serviceNumber}`,
+      });
+
+      // Reset form
+      setFormData({
+        deviceType: '',
+        deviceModel: '',
+        serialNumber: '',
+        issueDescription: '',
+      });
+    } catch (error) {
+      console.error('Error submitting service request:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to submit service request. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -113,6 +148,11 @@ const Services = () => {
             <CardTitle className="text-2xl">Request a Service</CardTitle>
             <CardDescription>
               Fill out the form below to submit your service request
+              {!user && (
+                <span className="block mt-2 text-orange-600 font-medium">
+                  Please log in to submit a service request
+                </span>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -120,7 +160,11 @@ const Services = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <Label htmlFor="device-type">Device Type</Label>
-                  <Select value={formData.deviceType} onValueChange={(value) => handleInputChange('deviceType', value)}>
+                  <Select 
+                    value={formData.deviceType} 
+                    onValueChange={(value) => handleInputChange('deviceType', value)}
+                    disabled={!user}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select device type" />
                     </SelectTrigger>
@@ -129,6 +173,9 @@ const Services = () => {
                       <SelectItem value="phone">Phone</SelectItem>
                       <SelectItem value="tablet">Tablet</SelectItem>
                       <SelectItem value="desktop">Desktop</SelectItem>
+                      <SelectItem value="smart_speaker">Smart Speaker</SelectItem>
+                      <SelectItem value="television">Television</SelectItem>
+                      <SelectItem value="game_console">Game Console</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
@@ -142,48 +189,18 @@ const Services = () => {
                     onChange={(e) => handleInputChange('deviceModel', e.target.value)}
                     placeholder="e.g., MacBook Pro 16"
                     required
+                    disabled={!user}
                   />
                 </div>
 
-                <div>
+                <div className="md:col-span-2">
                   <Label htmlFor="serial-number">Serial Number (Optional)</Label>
                   <Input
                     id="serial-number"
                     value={formData.serialNumber}
                     onChange={(e) => handleInputChange('serialNumber', e.target.value)}
                     placeholder="Serial number if available"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="customer-name">Your Name</Label>
-                  <Input
-                    id="customer-name"
-                    value={formData.customerName}
-                    onChange={(e) => handleInputChange('customerName', e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="customer-email">Email</Label>
-                  <Input
-                    id="customer-email"
-                    type="email"
-                    value={formData.customerEmail}
-                    onChange={(e) => handleInputChange('customerEmail', e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="customer-phone">Phone Number</Label>
-                  <Input
-                    id="customer-phone"
-                    type="tel"
-                    value={formData.customerPhone}
-                    onChange={(e) => handleInputChange('customerPhone', e.target.value)}
-                    required
+                    disabled={!user}
                   />
                 </div>
               </div>
@@ -197,11 +214,17 @@ const Services = () => {
                   placeholder="Please describe the issue in detail..."
                   rows={4}
                   required
+                  disabled={!user}
                 />
               </div>
 
-              <Button type="submit" size="lg" className="w-full">
-                Submit Service Request
+              <Button 
+                type="submit" 
+                size="lg" 
+                className="w-full" 
+                disabled={!user || loading}
+              >
+                {loading ? 'Submitting...' : 'Submit Service Request'}
               </Button>
             </form>
           </CardContent>
