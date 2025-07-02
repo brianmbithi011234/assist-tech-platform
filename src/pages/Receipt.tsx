@@ -58,7 +58,15 @@ const Receipt = () => {
         .single();
 
       if (error) throw error;
-      setReceipt(data);
+      
+      // Transform the data to match our interface
+      const transformedReceipt: ReceiptData = {
+        receipt_number: data.receipt_number,
+        receipt_data: data.receipt_data as ReceiptData['receipt_data'],
+        created_at: data.created_at
+      };
+      
+      setReceipt(transformedReceipt);
     } catch (error) {
       console.error('Error fetching receipt:', error);
       toast.error('Failed to load receipt');

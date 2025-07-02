@@ -177,8 +177,8 @@ const Checkout = () => {
         currency: 'KES',
         payment_method: paymentMethods.find(m => m.id === selectedPaymentMethod)?.name,
         customer: {
-          name: user?.user_metadata?.full_name || user?.email,
-          email: user?.email
+          name: user?.user_metadata?.full_name || user?.email || 'Customer',
+          email: user?.email || ''
         },
         timestamp: new Date().toISOString()
       };
