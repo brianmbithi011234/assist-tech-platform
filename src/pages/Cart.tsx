@@ -1,13 +1,67 @@
 
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Layout from '@/components/Layout';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 const Cart = () => {
   const { items, updateQuantity, removeFromCart, total, clearCart } = useCart();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  const handleCheckout = async () => {
+    if (!user) {
+      toast.error('Please sign in to proceed with checkout');
+      navigate('/login');
+      return;
+    }
+
+    if (items.length === 0) {
+      toast.error('Your cart is empty');
+      return;
+    }
+
+    setIsCheckingOut(true);
+    
+    try {
+      // For now, we'll simulate a checkout process
+      // In a real app, this would integrate with a payment processor
+      toast.success('Checkout initiated! Redirecting to payment...');
+      
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Clear cart after successful checkout
+      clearCart();
+      
+      // Redirect to a success page or orders page
+      navigate('/account');
+      
+      toast.success('Order placed successfully!');
+      
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast.error('Failed to process checkout. Please try again.');
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
+
+  // Format price in Kenyan Shillings
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(price);
+  };
 
   if (items.length === 0) {
     return (
@@ -51,7 +105,7 @@ const Cart = () => {
                       <h3 className="text-lg font-semibold text-gray-900">
                         {item.name}
                       </h3>
-                      <p className="text-gray-600">${item.price}</p>
+                      <p className="text-gray-600">{formatPrice(item.price)}</p>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Button
@@ -74,7 +128,7 @@ const Cart = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-semibold text-gray-900">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        {formatPrice(item.price * item.quantity)}
                       </p>
                       <Button
                         variant="ghost"
@@ -99,10 +153,15 @@ const Cart = () => {
               <CardContent className="space-y-4">
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total:</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>{formatPrice(total)}</span>
                 </div>
-                <Button className="w-full" size="lg">
-                  Proceed to Checkout
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  onClick={handleCheckout}
+                  disabled={isCheckingOut}
+                >
+                  {isCheckingOut ? 'Processing...' : 'Proceed to Checkout'}
                 </Button>
                 <Link to="/products">
                   <Button variant="outline" className="w-full">
