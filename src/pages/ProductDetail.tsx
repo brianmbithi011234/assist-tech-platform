@@ -1,7 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Star, Shield, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import Layout from '@/components/Layout';
 import { useCart } from '@/contexts/CartContext';
 import { supabase } from '@/integrations/supabase/client';
+import { formatKES } from '@/utils/currency';
 
 interface Product {
   id: string;
@@ -72,6 +72,20 @@ const ProductDetail = () => {
     });
   };
 
+  const getProductImage = (category: string, productName: string) => {
+    // Return high-quality images based on product category
+    const imageMap: { [key: string]: string } = {
+      laptops: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=1200&h=800&fit=crop&crop=center',
+      phones: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=1200&h=800&fit=crop&crop=center',
+      tablets: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=1200&h=800&fit=crop&crop=center',
+      smart_speakers: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&h=800&fit=crop&crop=center',
+      televisions: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=1200&h=800&fit=crop&crop=center',
+      game_consoles: 'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=1200&h=800&fit=crop&crop=center'
+    };
+
+    return imageMap[category] || 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&h=800&fit=crop&crop=center';
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -109,47 +123,93 @@ const ProductDetail = () => {
           Back to Products
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="aspect-square overflow-hidden rounded-lg">
-            <img
-              src={product.image_url}
-              alt={product.name}
-              className="w-full h-full object-cover"
-            />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className="space-y-4">
+            <div className="aspect-square overflow-hidden rounded-xl bg-gradient-to-br from-blue-50 to-indigo-100 shadow-lg">
+              <img
+                src={product.image_url || getProductImage(product.category, product.name)}
+                alt={product.name}
+                className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = getProductImage(product.category, product.name);
+                }}
+              />
+            </div>
+            
+            {/* Trust indicators */}
+            <div className="flex justify-around bg-gray-50 p-4 rounded-lg">
+              <div className="text-center">
+                <Shield className="h-6 w-6 text-green-600 mx-auto mb-1" />
+                <span className="text-xs text-gray-600">Warranty</span>
+              </div>
+              <div className="text-center">
+                <Truck className="h-6 w-6 text-blue-600 mx-auto mb-1" />
+                <span className="text-xs text-gray-600">Free Shipping</span>
+              </div>
+              <div className="text-center">
+                <Star className="h-6 w-6 text-yellow-500 mx-auto mb-1" />
+                <span className="text-xs text-gray-600">Top Rated</span>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-6">
             <div>
-              <Badge variant="secondary" className="mb-2 capitalize">
+              <Badge variant="secondary" className="mb-3 capitalize bg-blue-100 text-blue-800">
                 {product.category.replace('_', ' ')}
               </Badge>
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">
                 {product.name}
               </h1>
-              <p className="text-gray-600 text-lg mb-4">
+              <p className="text-gray-600 text-lg mb-6 leading-relaxed">
                 {product.description}
               </p>
-              <div className="flex items-center justify-between mb-6">
-                <span className="text-4xl font-bold text-blue-600">
-                  KSh {product.price.toLocaleString()}
-                </span>
-                <span className="text-lg text-gray-600">
-                  {product.stock_quantity > 0 ? `${product.stock_quantity} in stock` : 'Out of stock'}
-                </span>
+              
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-4xl font-bold text-blue-600">
+                    {formatKES(product.price)}
+                  </span>
+                  <div className="text-right">
+                    {product.stock_quantity > 0 ? (
+                      <div>
+                        <span className="text-lg text-green-600 font-semibold">
+                          ✓ In Stock
+                        </span>
+                        <p className="text-sm text-gray-600">
+                          {product.stock_quantity} units available
+                        </p>
+                      </div>
+                    ) : (
+                      <span className="text-lg text-red-600 font-semibold">Out of Stock</span>
+                    )}
+                  </div>
+                </div>
+                
+                {product.stock_quantity < 5 && product.stock_quantity > 0 && (
+                  <div className="bg-orange-100 border border-orange-200 p-3 rounded-lg mb-4">
+                    <p className="text-orange-800 font-medium">
+                      ⚠️ Only {product.stock_quantity} units left in stock!
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
             {product.specifications && (
-              <Card>
+              <Card className="border-2">
                 <CardHeader>
-                  <CardTitle>Specifications</CardTitle>
+                  <CardTitle className="text-xl">Product Specifications</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-4">
                     {Object.entries(product.specifications).map(([key, value]) => (
-                      <div key={key} className="flex justify-between py-2 border-b border-gray-100 last:border-b-0">
-                        <span className="font-medium text-gray-700 capitalize">{key.replace('_', ' ')}</span>
-                        <span className="text-gray-600">{String(value)}</span>
+                      <div key={key} className="flex justify-between py-3 border-b border-gray-100 last:border-b-0">
+                        <span className="font-medium text-gray-700 capitalize">
+                          {key.replace('_', ' ')}
+                        </span>
+                        <span className="text-gray-600 font-medium">{String(value)}</span>
                       </div>
                     ))}
                   </div>
@@ -157,16 +217,22 @@ const ProductDetail = () => {
               </Card>
             )}
 
-            <div className="flex gap-4">
+            <div className="flex gap-4 pt-4">
               <Button 
                 onClick={handleAddToCart}
-                className="flex-1"
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
                 size="lg"
                 disabled={product.stock_quantity === 0}
               >
                 <ShoppingCart className="h-5 w-5 mr-2" />
-                Add to Cart
+                {product.stock_quantity === 0 ? 'Out of Stock' : 'Add to Cart'}
               </Button>
+            </div>
+            
+            <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+              <p className="text-green-800 text-sm">
+                <strong>Free shipping</strong> on this item. Order now and get it delivered within 2-3 business days.
+              </p>
             </div>
           </div>
         </div>

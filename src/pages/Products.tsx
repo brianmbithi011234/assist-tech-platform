@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Search, Filter, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,6 +40,20 @@ const Products = () => {
     { value: 'televisions', label: 'Televisions' },
     { value: 'game_consoles', label: 'Game Consoles' }
   ];
+
+  const getProductImage = (category: string, productName: string) => {
+    // Return high-quality images based on product category and name
+    const imageMap: { [key: string]: string } = {
+      laptops: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=800&h=600&fit=crop&crop=center',
+      phones: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=600&fit=crop&crop=center',
+      tablets: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=800&h=600&fit=crop&crop=center',
+      smart_speakers: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=600&fit=crop&crop=center',
+      televisions: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=800&h=600&fit=crop&crop=center',
+      game_consoles: 'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=800&h=600&fit=crop&crop=center'
+    };
+
+    return imageMap[category] || 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&h=600&fit=crop&crop=center';
+  };
 
   useEffect(() => {
     fetchProducts();
@@ -101,6 +114,10 @@ const Products = () => {
     });
   };
 
+  const formatKES = (price: number) => {
+    return price.toLocaleString('en-US', { style: 'currency', currency: 'KES' });
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -119,7 +136,7 @@ const Products = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-4">Our Products</h1>
-          <p className="text-gray-600">Discover our latest collection of technology products</p>
+          <p className="text-gray-600">Discover our latest collection of premium technology products</p>
         </div>
 
         <div className="flex flex-col md:flex-row gap-4 mb-8">
@@ -149,26 +166,40 @@ const Products = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
-            <Card key={product.id} className="hover:shadow-lg transition-shadow">
+            <Card key={product.id} className="hover:shadow-xl transition-all duration-300 group overflow-hidden">
               <CardHeader className="p-0">
-                <div className="aspect-square overflow-hidden rounded-t-lg">
+                <div className="aspect-square overflow-hidden rounded-t-lg bg-gradient-to-br from-blue-50 to-indigo-100">
                   <img
-                    src={product.image_url}
+                    src={product.image_url || getProductImage(product.category, product.name)}
                     alt={product.name}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = getProductImage(product.category, product.name);
+                    }}
                   />
+                  {product.stock_quantity < 5 && product.stock_quantity > 0 && (
+                    <div className="absolute top-2 right-2 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                      Only {product.stock_quantity} left!
+                    </div>
+                  )}
+                  {product.stock_quantity === 0 && (
+                    <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                      <span className="text-white font-bold text-lg">Out of Stock</span>
+                    </div>
+                  )}
                 </div>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-2">
-                  <Badge variant="secondary" className="text-xs">
+                  <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800">
                     {categories.find(c => c.value === product.category)?.label || product.category}
                   </Badge>
-                  <span className="text-sm text-gray-500">
-                    {product.stock_quantity} in stock
+                  <span className="text-sm text-green-600 font-medium">
+                    ✓ {product.stock_quantity} available
                   </span>
                 </div>
-                <CardTitle className="text-lg mb-2 line-clamp-2">
+                <CardTitle className="text-lg mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
                   <Link to={`/products/${product.id}`} className="hover:text-blue-600">
                     {product.name}
                   </Link>
@@ -177,13 +208,17 @@ const Products = () => {
                   {product.description}
                 </CardDescription>
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-blue-600">
-                    KSh {product.price.toLocaleString()}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-2xl font-bold text-blue-600">
+                      {formatKES(product.price)}
+                    </span>
+                    <span className="text-xs text-gray-500">Free shipping</span>
+                  </div>
                   <Button
                     onClick={() => handleAddToCart(product)}
                     size="sm"
                     disabled={product.stock_quantity === 0}
+                    className="bg-blue-600 hover:bg-blue-700 transition-colors"
                   >
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     Add to Cart

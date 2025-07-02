@@ -169,6 +169,8 @@ const Checkout = () => {
 
   const generateReceipt = async (orderId: string, paymentId: string) => {
     try {
+      console.log('Generating receipt for order:', orderId, 'payment:', paymentId);
+      
       const receiptData = {
         order_id: orderId,
         payment_id: paymentId,
@@ -183,21 +185,36 @@ const Checkout = () => {
         timestamp: new Date().toISOString()
       };
 
-      const { data: receiptNumber } = await supabase
+      console.log('Receipt data:', receiptData);
+
+      // Generate receipt number using the database function
+      const { data: receiptNumberResult, error: receiptNumberError } = await supabase
         .rpc('generate_receipt_number');
+
+      if (receiptNumberError) {
+        console.error('Error generating receipt number:', receiptNumberError);
+        throw receiptNumberError;
+      }
+
+      console.log('Generated receipt number:', receiptNumberResult);
 
       const { data: receipt, error } = await supabase
         .from('receipts')
         .insert({
           order_id: orderId,
           payment_id: paymentId,
-          receipt_number: receiptNumber,
+          receipt_number: receiptNumberResult,
           receipt_data: receiptData
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting receipt:', error);
+        throw error;
+      }
+
+      console.log('Receipt created successfully:', receipt);
       return receipt;
     } catch (error) {
       console.error('Error generating receipt:', error);
@@ -231,17 +248,27 @@ const Checkout = () => {
     setIsProcessing(true);
 
     try {
+      console.log('Starting checkout process...');
+      
       toast.info('Creating order...');
       const order = await createOrder();
+      console.log('Order created:', order);
 
       toast.info('Processing payment...');
       const payment = await processPayment(order.id);
+      console.log('Payment processed:', payment);
 
       toast.info('Generating receipt...');
       const receipt = await generateReceipt(order.id, payment.id);
+      console.log('Receipt generated:', receipt);
 
       clearCart();
       toast.success('Order completed successfully!');
+      
+      console.log('Navigating to receipt page with:', {
+        receiptId: receipt.id,
+        orderNumber: order.order_number
+      });
       
       navigate('/receipt', { 
         state: { 
