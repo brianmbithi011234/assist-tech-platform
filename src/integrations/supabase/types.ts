@@ -12,6 +12,7 @@ export type Database = {
       order_items: {
         Row: {
           created_at: string | null
+          currency: string | null
           id: string
           order_id: string | null
           product_id: string | null
@@ -21,6 +22,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          currency?: string | null
           id?: string
           order_id?: string | null
           product_id?: string | null
@@ -30,6 +32,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          currency?: string | null
           id?: string
           order_id?: string | null
           product_id?: string | null
@@ -57,6 +60,7 @@ export type Database = {
       orders: {
         Row: {
           created_at: string | null
+          currency: string | null
           id: string
           order_number: string
           shipping_address: string | null
@@ -67,6 +71,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          currency?: string | null
           id?: string
           order_number: string
           shipping_address?: string | null
@@ -77,6 +82,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          currency?: string | null
           id?: string
           order_number?: string
           shipping_address?: string | null
@@ -91,6 +97,87 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_methods: {
+        Row: {
+          created_at: string
+          icon_url: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string | null
+          id: string
+          order_id: string
+          payment_data: Json | null
+          payment_method_id: string
+          status: string | null
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string | null
+          id?: string
+          order_id: string
+          payment_data?: Json | null
+          payment_method_id: string
+          status?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string | null
+          id?: string
+          order_id?: string
+          payment_data?: Json | null
+          payment_method_id?: string
+          status?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
             referencedColumns: ["id"]
           },
         ]
@@ -161,6 +248,48 @@ export type Database = {
         }
         Relationships: []
       }
+      receipts: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          payment_id: string
+          receipt_data: Json
+          receipt_number: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          payment_id: string
+          receipt_data: Json
+          receipt_number: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          payment_id?: string
+          receipt_data?: Json
+          receipt_number?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipts_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_requests: {
         Row: {
           created_at: string | null
@@ -216,7 +345,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_receipt_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

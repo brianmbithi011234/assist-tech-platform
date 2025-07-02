@@ -8,6 +8,7 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { formatKES } from '@/utils/currency';
 
 const Cart = () => {
   const { items, updateQuantity, removeFromCart, total, clearCart } = useCart();
@@ -30,37 +31,22 @@ const Cart = () => {
     setIsCheckingOut(true);
     
     try {
-      // For now, we'll simulate a checkout process
-      // In a real app, this would integrate with a payment processor
-      toast.success('Checkout initiated! Redirecting to payment...');
-      
-      // Simulate processing time
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Clear cart after successful checkout
-      clearCart();
-      
-      // Redirect to a success page or orders page
-      navigate('/account');
-      
-      toast.success('Order placed successfully!');
+      // Navigate to checkout page with order data
+      navigate('/checkout', {
+        state: {
+          orderData: {
+            items: items,
+            total: total
+          }
+        }
+      });
       
     } catch (error) {
       console.error('Checkout error:', error);
-      toast.error('Failed to process checkout. Please try again.');
+      toast.error('Failed to proceed to checkout. Please try again.');
     } finally {
       setIsCheckingOut(false);
     }
-  };
-
-  // Format price in Kenyan Shillings
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-KE', {
-      style: 'currency',
-      currency: 'KES',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(price);
   };
 
   if (items.length === 0) {
@@ -105,7 +91,7 @@ const Cart = () => {
                       <h3 className="text-lg font-semibold text-gray-900">
                         {item.name}
                       </h3>
-                      <p className="text-gray-600">{formatPrice(item.price)}</p>
+                      <p className="text-gray-600">{formatKES(item.price)}</p>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Button
@@ -128,7 +114,7 @@ const Cart = () => {
                     </div>
                     <div className="text-right">
                       <p className="text-lg font-semibold text-gray-900">
-                        {formatPrice(item.price * item.quantity)}
+                        {formatKES(item.price * item.quantity)}
                       </p>
                       <Button
                         variant="ghost"
@@ -153,7 +139,7 @@ const Cart = () => {
               <CardContent className="space-y-4">
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total:</span>
-                  <span>{formatPrice(total)}</span>
+                  <span>{formatKES(total)}</span>
                 </div>
                 <Button 
                   className="w-full" 
