@@ -66,23 +66,31 @@ const Receipt = () => {
       
       console.log('Receipt data fetched:', data);
       
-      // Ensure receipt_data is properly formatted
-      if (!data.receipt_data || typeof data.receipt_data !== 'object') {
+      // Type guard to ensure receipt_data is an object
+      if (!data.receipt_data || typeof data.receipt_data !== 'object' || Array.isArray(data.receipt_data)) {
         console.error('Invalid receipt data structure:', data.receipt_data);
         throw new Error('Invalid receipt data structure');
       }
       
-      // Transform the data to match our interface
+      // Cast to our expected type after validation
+      const receiptDataObj = data.receipt_data as Record<string, any>;
+      
+      // Transform the data to match our interface with proper fallbacks
       const transformedReceipt: ReceiptData = {
         receipt_number: data.receipt_number,
         receipt_data: {
-          order_id: data.receipt_data.order_id || '',
-          items: data.receipt_data.items || [],
-          total: data.receipt_data.total || 0,
-          currency: data.receipt_data.currency || 'KES',
-          payment_method: data.receipt_data.payment_method || 'Unknown',
-          customer: data.receipt_data.customer || { name: 'Customer', email: '' },
-          timestamp: data.receipt_data.timestamp || data.created_at
+          order_id: receiptDataObj.order_id || '',
+          items: Array.isArray(receiptDataObj.items) ? receiptDataObj.items : [],
+          total: typeof receiptDataObj.total === 'number' ? receiptDataObj.total : 0,
+          currency: receiptDataObj.currency || 'KES',
+          payment_method: receiptDataObj.payment_method || 'Unknown',
+          customer: receiptDataObj.customer && typeof receiptDataObj.customer === 'object' 
+            ? {
+                name: receiptDataObj.customer.name || 'Customer',
+                email: receiptDataObj.customer.email || ''
+              }
+            : { name: 'Customer', email: '' },
+          timestamp: receiptDataObj.timestamp || data.created_at
         },
         created_at: data.created_at
       };
