@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -101,10 +100,11 @@ const Checkout = () => {
 
       if (orderError) throw orderError;
 
-      // Create order items
+      // Instead of trying to link to products table, store item data directly in order_items
+      // This avoids the UUID foreign key issue since we're not maintaining a products table with proper UUIDs
       const orderItems = orderData.items.map(item => ({
         order_id: order.id,
-        product_id: item.id,
+        product_id: null, // Set to null instead of trying to use invalid UUID
         quantity: item.quantity,
         unit_price: item.price,
         total_price: item.price * item.quantity,
@@ -115,7 +115,10 @@ const Checkout = () => {
         .from('order_items')
         .insert(orderItems);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('Error creating order items:', itemsError);
+        throw itemsError;
+      }
 
       return order;
     } catch (error) {
