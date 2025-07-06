@@ -193,7 +193,28 @@ const Checkout = () => {
 
       if (receiptNumberError) {
         console.error('Error generating receipt number:', receiptNumberError);
-        throw receiptNumberError;
+        // Fallback to client-side generation if database function fails
+        const fallbackReceiptNumber = 'RCP-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.random().toString().slice(2, 8);
+        console.log('Using fallback receipt number:', fallbackReceiptNumber);
+        
+        const { data: receipt, error } = await supabase
+          .from('receipts')
+          .insert({
+            order_id: orderId,
+            payment_id: paymentId,
+            receipt_number: fallbackReceiptNumber,
+            receipt_data: receiptData
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Error inserting receipt with fallback number:', error);
+          throw error;
+        }
+
+        console.log('Receipt created successfully with fallback number:', receipt);
+        return receipt;
       }
 
       console.log('Generated receipt number:', receiptNumberResult);
@@ -279,7 +300,8 @@ const Checkout = () => {
 
     } catch (error) {
       console.error('Checkout error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to process order');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process order';
+      toast.error(`Checkout failed: ${errorMessage}`);
     } finally {
       setIsProcessing(false);
     }

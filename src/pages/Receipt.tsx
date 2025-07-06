@@ -51,26 +51,48 @@ const Receipt = () => {
 
   const fetchReceipt = async () => {
     try {
+      console.log('Fetching receipt with ID:', receiptId);
+      
       const { data, error } = await supabase
         .from('receipts')
         .select('*')
         .eq('id', receiptId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching receipt:', error);
+        throw error;
+      }
+      
+      console.log('Receipt data fetched:', data);
+      
+      // Ensure receipt_data is properly formatted
+      if (!data.receipt_data || typeof data.receipt_data !== 'object') {
+        console.error('Invalid receipt data structure:', data.receipt_data);
+        throw new Error('Invalid receipt data structure');
+      }
       
       // Transform the data to match our interface
       const transformedReceipt: ReceiptData = {
         receipt_number: data.receipt_number,
-        receipt_data: data.receipt_data as ReceiptData['receipt_data'],
+        receipt_data: {
+          order_id: data.receipt_data.order_id || '',
+          items: data.receipt_data.items || [],
+          total: data.receipt_data.total || 0,
+          currency: data.receipt_data.currency || 'KES',
+          payment_method: data.receipt_data.payment_method || 'Unknown',
+          customer: data.receipt_data.customer || { name: 'Customer', email: '' },
+          timestamp: data.receipt_data.timestamp || data.created_at
+        },
         created_at: data.created_at
       };
       
+      console.log('Transformed receipt:', transformedReceipt);
       setReceipt(transformedReceipt);
     } catch (error) {
       console.error('Error fetching receipt:', error);
-      toast.error('Failed to load receipt');
-      navigate('/');
+      toast.error('Failed to load receipt. Please check your connection and try again.');
+      // Don't navigate away immediately, give user a chance to retry
     } finally {
       setLoading(false);
     }
@@ -117,7 +139,10 @@ Thank you for your business!
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center">Loading receipt...</div>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading receipt...</p>
+          </div>
         </div>
       </Layout>
     );
@@ -127,7 +152,19 @@ Thank you for your business!
     return (
       <Layout>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center">Receipt not found</div>
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Receipt not found</h2>
+            <p className="text-gray-600 mb-8">We couldn't find the receipt you're looking for.</p>
+            <div className="space-x-4">
+              <Button onClick={fetchReceipt} variant="outline">
+                Try Again
+              </Button>
+              <Button onClick={() => navigate('/')}>
+                <Home className="h-4 w-4 mr-2" />
+                Back to Home
+              </Button>
+            </div>
+          </div>
         </div>
       </Layout>
     );
