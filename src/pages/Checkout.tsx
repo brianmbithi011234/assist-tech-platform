@@ -81,25 +81,67 @@ const Checkout = () => {
     return 'ORD-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substr(2, 5).toUpperCase();
   };
 
+  const isValidUUID = (str: string) => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+  };
+
+  const getOrCreateProfile = async (userId: string) => {
+    try {
+      // If the userId is already a valid UUID, try to find the profile
+      if (isValidUUID(userId)) {
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', userId)
+          .single();
+
+        if (!error && profile) {
+          return userId;
+        }
+      }
+
+      // If not a valid UUID or profile doesn't exist, create a new profile with UUID
+      const newProfileId = crypto.randomUUID();
+      
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert({
+          id: newProfileId,
+          email: user?.email || '',
+          full_name: (user as any)?.name || 'Customer',
+        });
+
+      if (insertError) {
+        console.error('Error creating profile:', insertError);
+        throw insertError;
+      }
+
+      console.log('Created new profile with ID:', newProfileId);
+      return newProfileId;
+    } catch (error) {
+      console.error('Error in getOrCreateProfile:', error);
+      throw error;
+    }
+  };
+
   const createOrder = async () => {
     try {
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      // Ensure we have a valid user ID
-      const userId = user.id;
-      if (!userId) {
-        throw new Error('User ID not found');
-      }
-
-      console.log('User ID:', userId);
-      console.log('User object:', user);
+      console.log('Original user object:', user);
+      
+      // Get or create a valid UUID profile for the user
+      const validUserId = await getOrCreateProfile(user.id);
+      
+      console.log('Using valid user ID:', validUserId);
 
       const orderNumber = generateOrderNumber();
       
       console.log('Creating order with data:', {
-        user_id: userId,
+        user_id: validUserId,
         order_number: orderNumber,
         total_amount: orderData.total,
         currency: 'KES',
@@ -110,7 +152,7 @@ const Checkout = () => {
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
-          user_id: userId,
+          user_id: validUserId,
           order_number: orderNumber,
           total_amount: orderData.total,
           currency: 'KES',
