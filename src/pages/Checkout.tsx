@@ -83,10 +83,23 @@ const Checkout = () => {
 
   const createOrder = async () => {
     try {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Ensure we have a valid user ID
+      const userId = user.id;
+      if (!userId) {
+        throw new Error('User ID not found');
+      }
+
+      console.log('User ID:', userId);
+      console.log('User object:', user);
+
       const orderNumber = generateOrderNumber();
       
       console.log('Creating order with data:', {
-        user_id: user?.id,
+        user_id: userId,
         order_number: orderNumber,
         total_amount: orderData.total,
         currency: 'KES',
@@ -97,7 +110,7 @@ const Checkout = () => {
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
-          user_id: user?.id,
+          user_id: userId,
           order_number: orderNumber,
           total_amount: orderData.total,
           currency: 'KES',
@@ -268,6 +281,12 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      toast.error('Please log in to complete your order');
+      navigate('/login');
+      return;
+    }
+    
     if (!shippingAddress) {
       toast.error('Please enter a shipping address');
       return;
@@ -322,7 +341,14 @@ const Checkout = () => {
 
     } catch (error) {
       console.error('Checkout error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to process order';
+      let errorMessage = 'Failed to process order';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (typeof error === 'object' && error !== null) {
+        errorMessage = (error as any).message || JSON.stringify(error);
+      }
+      
       toast.error(`Checkout failed: ${errorMessage}`);
     } finally {
       setIsProcessing(false);
