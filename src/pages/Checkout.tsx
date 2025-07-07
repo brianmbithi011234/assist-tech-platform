@@ -85,6 +85,15 @@ const Checkout = () => {
     try {
       const orderNumber = generateOrderNumber();
       
+      console.log('Creating order with data:', {
+        user_id: user?.id,
+        order_number: orderNumber,
+        total_amount: orderData.total,
+        currency: 'KES',
+        shipping_address: shippingAddress,
+        status: 'pending'
+      });
+      
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
@@ -98,18 +107,27 @@ const Checkout = () => {
         .select()
         .single();
 
-      if (orderError) throw orderError;
+      if (orderError) {
+        console.error('Order creation error:', orderError);
+        throw orderError;
+      }
 
-      // Instead of trying to link to products table, store item data directly in order_items
-      // This avoids the UUID foreign key issue since we're not maintaining a products table with proper UUIDs
-      const orderItems = orderData.items.map(item => ({
-        order_id: order.id,
-        product_id: null, // Set to null instead of trying to use invalid UUID
-        quantity: item.quantity,
-        unit_price: item.price,
-        total_price: item.price * item.quantity,
-        currency: 'KES'
-      }));
+      console.log('Order created successfully:', order);
+
+      // Create order items - ensuring we don't pass invalid UUIDs
+      const orderItems = orderData.items.map(item => {
+        console.log('Processing item for order:', item);
+        return {
+          order_id: order.id,
+          product_id: null, // We set this to null since cart items don't have valid UUIDs
+          quantity: item.quantity,
+          unit_price: item.price,
+          total_price: item.price * item.quantity,
+          currency: 'KES'
+        };
+      });
+
+      console.log('Inserting order items:', orderItems);
 
       const { error: itemsError } = await supabase
         .from('order_items')
@@ -120,6 +138,7 @@ const Checkout = () => {
         throw itemsError;
       }
 
+      console.log('Order items created successfully');
       return order;
     } catch (error) {
       console.error('Error creating order:', error);
