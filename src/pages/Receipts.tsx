@@ -83,7 +83,24 @@ const Receipts = () => {
       }
 
       console.log('Receipts fetched:', receiptsData);
-      setReceipts(receiptsData || []);
+      
+      // Transform the data to match our Receipt interface
+      const transformedReceipts: Receipt[] = (receiptsData || []).map(receipt => ({
+        id: receipt.id,
+        receipt_number: receipt.receipt_number,
+        created_at: receipt.created_at,
+        receipt_data: typeof receipt.receipt_data === 'object' && receipt.receipt_data !== null
+          ? receipt.receipt_data as Receipt['receipt_data']
+          : {
+              total: 0,
+              currency: 'KES',
+              payment_method: 'Unknown',
+              customer: { name: 'Customer', email: '' },
+              items: []
+            }
+      }));
+      
+      setReceipts(transformedReceipts);
     } catch (error) {
       console.error('Error loading receipts:', error);
       toast.error('Failed to load receipts');
