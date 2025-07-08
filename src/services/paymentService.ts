@@ -2,67 +2,82 @@
 import { supabase } from '@/integrations/supabase/client';
 import { PaymentMethod } from '@/types/checkout';
 
-export const fetchPaymentMethods = async () => {
-  try {
-    const { data, error } = await supabase
-      .from('payment_methods')
-      .select('*')
-      .eq('is_active', true);
+export const fetchPaymentMethods = async (): Promise<PaymentMethod[]> => {
+  const { data, error } = await supabase
+    .from('payment_methods')
+    .select('*')
+    .eq('is_active', true);
 
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
+  if (error) {
     console.error('Error fetching payment methods:', error);
     throw error;
   }
+
+  return data || [];
 };
 
 export const processPayment = async (
   orderId: string,
-  selectedPaymentMethod: string,
+  paymentMethodId: string,
   paymentMethods: PaymentMethod[],
-  orderTotal: number,
-  mpesaPhone: string,
-  paypalEmail: string
+  amount: number,
+  mpesaPhone?: string,
+  paypalEmail?: string
 ) => {
-  const selectedMethod = paymentMethods.find(m => m.id === selectedPaymentMethod);
-  if (!selectedMethod) throw new Error('No payment method selected');
+  try {
+    console.log('Processing simulated payment for order:', orderId);
 
-  let paymentData: any = {};
-  
-  if (selectedMethod.type === 'mpesa') {
-    if (!mpesaPhone) throw new Error('M-Pesa phone number is required');
-    paymentData = { phone: mpesaPhone };
-  } else if (selectedMethod.type === 'paypal') {
-    if (!paypalEmail) throw new Error('PayPal email is required');
-    paymentData = { email: paypalEmail };
+    const paymentMethod = paymentMethods.find(m => m.id === paymentMethodId);
+    if (!paymentMethod) {
+      throw new Error('Invalid payment method');
+    }
+
+    // Simulate processing time
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Generate a fake transaction ID
+    const transactionId = 'TXN-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '-' + Math.random().toString().slice(2, 8);
+
+    // Create payment record with simulated success
+    const paymentData: any = {
+      payment_method: paymentMethod.name,
+      simulated: true,
+      transaction_id: transactionId,
+      timestamp: new Date().toISOString()
+    };
+
+    // Add method-specific data
+    if (paymentMethod.type === 'mpesa' && mpesaPhone) {
+      paymentData.mpesa_phone = mpesaPhone;
+      paymentData.mpesa_confirmation = 'SIM-' + Math.random().toString().slice(2, 8);
+    } else if (paymentMethod.type === 'paypal' && paypalEmail) {
+      paymentData.paypal_email = paypalEmail;
+      paymentData.paypal_reference = 'PAY-' + Math.random().toString().slice(2, 8);
+    }
+
+    const { data: payment, error } = await supabase
+      .from('payments')
+      .insert({
+        order_id: orderId,
+        payment_method_id: paymentMethodId,
+        amount: amount,
+        currency: 'KES',
+        status: 'completed', // Simulated success
+        transaction_id: transactionId,
+        payment_data: paymentData
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating payment record:', error);
+      throw error;
+    }
+
+    console.log('Simulated payment processed successfully:', payment);
+    return payment;
+  } catch (error) {
+    console.error('Error processing simulated payment:', error);
+    throw error;
   }
-
-  const { data: payment, error } = await supabase
-    .from('payments')
-    .insert({
-      order_id: orderId,
-      payment_method_id: selectedPaymentMethod,
-      amount: orderTotal,
-      currency: 'KES',
-      status: 'processing',
-      payment_data: paymentData
-    })
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  // Simulate payment processing
-  await new Promise(resolve => setTimeout(resolve, 2000));
-
-  // Update payment status to completed
-  const { error: updateError } = await supabase
-    .from('payments')
-    .update({ status: 'completed' })
-    .eq('id', payment.id);
-
-  if (updateError) throw updateError;
-
-  return payment;
 };

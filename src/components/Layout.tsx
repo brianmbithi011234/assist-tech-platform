@@ -1,105 +1,121 @@
+
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, User, Menu, X, Search, Wrench } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useCart } from '@/contexts/CartContext';
+import { Link, useLocation } from 'react-router-dom';
+import { Menu, X, ShoppingCart, User, Receipt } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCart } from '@/contexts/CartContext';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { itemCount } = useCart();
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { items } = useCart();
+  const location = useLocation();
 
-  const handleSignOut = async () => {
-    logout();
-    navigate('/');
-  };
+  const isActive = (path: string) => location.pathname === path;
 
   const navigation = [
-    { name: 'Home', href: '/' },
-    { name: 'Products', href: '/products' },
-    { name: 'Services', href: '/services' },
-    { name: 'Track Order', href: '/tracking' },
+    { name: 'Home', path: '/' },
+    { name: 'Products', path: '/products' },
+    { name: 'Services', path: '/services' },
+    { name: 'Tracking', path: '/tracking' },
   ];
+
+  const userNavigation = user ? [
+    { name: 'My Account', path: '/account' },
+    { name: 'My Receipts', path: '/receipts' },
+    ...(user.role === 'admin' ? [{ name: 'Admin Panel', path: '/admin' }] : []),
+  ] : [];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
+      <nav className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="bg-blue-600 p-2 rounded-lg">
-                <Search className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-gray-900">Betmo Enterprises</span>
-            </Link>
+            <div className="flex items-center">
+              <Link to="/" className="text-2xl font-bold text-blue-600">
+                BETMO
+              </Link>
+            </div>
 
             {/* Desktop Navigation */}
-            <nav className="hidden md:flex space-x-8">
+            <div className="hidden md:flex items-center space-x-8">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
-                  to={item.href}
-                  className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium transition-colors"
+                  to={item.path}
+                  className={`${
+                    isActive(item.path)
+                      ? 'text-blue-600 border-b-2 border-blue-600'
+                      : 'text-gray-700 hover:text-blue-600'
+                  } px-3 py-2 text-sm font-medium transition-colors`}
                 >
                   {item.name}
                 </Link>
               ))}
-            </nav>
+            </div>
 
-            {/* Right side buttons */}
+            {/* Right side icons */}
             <div className="flex items-center space-x-4">
-              <Link to="/cart" className="relative">
-                <Button variant="ghost" size="sm">
-                  <ShoppingCart className="h-5 w-5" />
-                  {itemCount > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {itemCount}
-                    </span>
-                  )}
-                </Button>
+              {/* Cart */}
+              <Link
+                to="/cart"
+                className="relative p-2 text-gray-700 hover:text-blue-600 transition-colors"
+              >
+                <ShoppingCart size={20} />
+                {items.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {items.reduce((sum, item) => sum + item.quantity, 0)}
+                  </span>
+                )}
               </Link>
 
+              {/* User Menu */}
               {user ? (
                 <div className="relative group">
-                  <Button variant="ghost" size="sm">
-                    <User className="h-5 w-5" />
-                  </Button>
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                    <Link
-                      to="/account"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      My Account
-                    </Link>
-                    <button
-                      onClick={handleSignOut}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    >
-                      Sign Out
-                    </button>
+                  <button className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 transition-colors">
+                    <User size={20} />
+                    <span className="hidden sm:block text-sm font-medium">
+                      {user.name}
+                    </span>
+                  </button>
+                  
+                  {/* Dropdown */}
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="py-1">
+                      {userNavigation.map((item) => (
+                        <Link
+                          key={item.name}
+                          to={item.path}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-blue-600"
+                        >
+                          {item.name}
+                        </Link>
+                      ))}
+                      <button
+                        onClick={logout}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-red-600"
+                      >
+                        Sign Out
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <Link to="/login">
-                  <Button variant="outline" size="sm">
-                    Sign In
-                  </Button>
+                <Link
+                  to="/login"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Sign In
                 </Link>
               )}
 
               {/* Mobile menu button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="md:hidden"
+              <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="md:hidden p-2 text-gray-700 hover:text-blue-600 transition-colors"
               >
-                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </Button>
+                {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
             </div>
           </div>
         </div>
@@ -111,74 +127,54 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
               {navigation.map((item) => (
                 <Link
                   key={item.name}
-                  to={item.href}
-                  className="block px-3 py-2 text-gray-700 hover:text-blue-600 text-base font-medium"
+                  to={item.path}
+                  className={`${
+                    isActive(item.path)
+                      ? 'text-blue-600 bg-blue-50'
+                      : 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
+                  } block px-3 py-2 text-base font-medium rounded-md transition-colors`}
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.name}
                 </Link>
               ))}
+              
+              {user && (
+                <>
+                  <div className="border-t pt-2 mt-2">
+                    {userNavigation.map((item) => (
+                      <Link
+                        key={item.name}
+                        to={item.path}
+                        className="block px-3 py-2 text-base font-medium text-gray-700 hover:text-blue-600 hover:bg-gray-50 rounded-md transition-colors"
+                        onClick={() => setIsMenuOpen(false)}
+                      >
+                        {item.name}
+                      </Link>
+                    ))}
+                    <button
+                      onClick={() => {
+                        logout();
+                        setIsMenuOpen(false);
+                      }}
+                      className="block w-full text-left px-3 py-2 text-base font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 rounded-md transition-colors"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
-      </header>
+      </nav>
 
-      {/* Main Content */}
-      <main className="flex-1">
-        {children}
-      </main>
+      <main>{children}</main>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <div className="bg-blue-600 p-2 rounded-lg">
-                  <Search className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xl font-bold">Betmo Enterprises</span>
-              </div>
-              <p className="text-gray-400">
-                Your trusted partner for quality technology products and professional repair services.
-              </p>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Products</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link to="/products" className="hover:text-white">Laptops</Link></li>
-                <li><Link to="/products" className="hover:text-white">Smartphones</Link></li>
-                <li><Link to="/products" className="hover:text-white">Tablets</Link></li>
-                <li><Link to="/products" className="hover:text-white">Smart Speakers</Link></li>
-                <li><Link to="/products" className="hover:text-white">Televisions</Link></li>
-                <li><Link to="/products" className="hover:text-white">Gaming Consoles</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Services</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link to="/services" className="hover:text-white">Device Repair</Link></li>
-                <li><Link to="/services" className="hover:text-white">Quick Service</Link></li>
-                <li><Link to="/services" className="hover:text-white">Warranty Service</Link></li>
-                <li><Link to="/tracking" className="hover:text-white">Track Order</Link></li>
-              </ul>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-semibold mb-4">Support</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li><Link to="/account" className="hover:text-white">My Account</Link></li>
-                <li><Link to="/tracking" className="hover:text-white">Order Status</Link></li>
-                <li><a href="#" className="hover:text-white">Contact Us</a></li>
-                <li><a href="#" className="hover:text-white">FAQ</a></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Betmo Enterprises. All rights reserved.</p>
+      <footer className="bg-gray-800 text-white mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="text-center">
+            <p>&copy; 2024 BETMO Enterprises. All rights reserved.</p>
           </div>
         </div>
       </footer>
