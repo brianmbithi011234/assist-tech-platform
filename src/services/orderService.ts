@@ -1,81 +1,36 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { OrderData } from '@/types/checkout';
 import { generateOrderNumber } from '@/utils/checkout';
-import { getOrCreateProfile } from './profileService';
 
-export const createOrder = async (orderData: OrderData, user: any, shippingAddress: string) => {
+// Demo order service that doesn't interact with Supabase
+// This allows checkout to work without authentication issues
+
+export const createOrder = async (orderData: any, user: any, shippingAddress: string) => {
   try {
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    console.log('Original user object:', user);
+    console.log('Creating demo order for user:', user);
     
-    // Get or create a valid UUID profile for the user
-    const validUserId = await getOrCreateProfile(user.id, user);
-    
-    console.log('Using valid user ID:', validUserId);
-
     const orderNumber = generateOrderNumber();
+    const orderId = `demo-order-${Date.now()}`;
     
-    console.log('Creating order with data:', {
-      user_id: validUserId,
+    // Create a demo order object that simulates a real order
+    const demoOrder = {
+      id: orderId,
       order_number: orderNumber,
+      user_id: user.id,
       total_amount: orderData.total,
       currency: 'KES',
       shipping_address: shippingAddress,
-      status: 'pending'
-    });
+      status: 'pending',
+      created_at: new Date().toISOString()
+    };
+
+    console.log('Demo order created:', demoOrder);
     
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        user_id: validUserId,
-        order_number: orderNumber,
-        total_amount: orderData.total,
-        currency: 'KES',
-        shipping_address: shippingAddress,
-        status: 'pending'
-      })
-      .select()
-      .single();
-
-    if (orderError) {
-      console.error('Order creation error:', orderError);
-      throw orderError;
-    }
-
-    console.log('Order created successfully:', order);
-
-    // Create order items with proper product references
-    const orderItems = orderData.items.map(item => {
-      console.log('Processing item for order:', item);
-      return {
-        order_id: order.id,
-        product_id: item.id, // Use the actual product ID from the cart
-        quantity: item.quantity,
-        unit_price: item.price,
-        total_price: item.price * item.quantity,
-        currency: 'KES'
-      };
-    });
-
-    console.log('Inserting order items:', orderItems);
-
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItems);
-
-    if (itemsError) {
-      console.error('Error creating order items:', itemsError);
-      throw itemsError;
-    }
-
-    console.log('Order items created successfully');
-    return order;
+    // Simulate some processing time
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    return demoOrder;
   } catch (error) {
-    console.error('Error creating order:', error);
+    console.error('Error creating demo order:', error);
     throw error;
   }
 };

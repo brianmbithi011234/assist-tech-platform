@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Eye, Search, Download } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatKES } from '@/utils/currency';
 
@@ -49,60 +48,24 @@ const Receipts = () => {
 
   const fetchReceipts = async () => {
     try {
-      console.log('Fetching receipts for user:', user);
+      console.log('Fetching demo receipts for user:', user);
       
-      // First get orders for the user
-      const { data: orders, error: ordersError } = await supabase
-        .from('orders')
-        .select('id')
-        .eq('user_id', user.id);
-
-      if (ordersError) {
-        console.error('Error fetching orders:', ordersError);
-        throw ordersError;
-      }
-
-      if (!orders || orders.length === 0) {
-        console.log('No orders found for user');
-        setReceipts([]);
-        return;
-      }
-
-      const orderIds = orders.map(order => order.id);
-
-      // Then get receipts for those orders
-      const { data: receiptsData, error: receiptsError } = await supabase
-        .from('receipts')
-        .select('*')
-        .in('order_id', orderIds)
-        .order('created_at', { ascending: false });
-
-      if (receiptsError) {
-        console.error('Error fetching receipts:', receiptsError);
-        throw receiptsError;
-      }
-
-      console.log('Receipts fetched:', receiptsData);
+      // Get receipts from localStorage for demo purposes
+      const demoReceipts = JSON.parse(localStorage.getItem('demoReceipts') || '[]');
+      
+      console.log('Demo receipts found:', demoReceipts);
       
       // Transform the data to match our Receipt interface
-      const transformedReceipts: Receipt[] = (receiptsData || []).map(receipt => ({
+      const transformedReceipts: Receipt[] = demoReceipts.map((receipt: any) => ({
         id: receipt.id,
         receipt_number: receipt.receipt_number,
         created_at: receipt.created_at,
-        receipt_data: typeof receipt.receipt_data === 'object' && receipt.receipt_data !== null
-          ? receipt.receipt_data as Receipt['receipt_data']
-          : {
-              total: 0,
-              currency: 'KES',
-              payment_method: 'Unknown',
-              customer: { name: 'Customer', email: '' },
-              items: []
-            }
+        receipt_data: receipt.receipt_data
       }));
       
       setReceipts(transformedReceipts);
     } catch (error) {
-      console.error('Error loading receipts:', error);
+      console.error('Error loading demo receipts:', error);
       toast.error('Failed to load receipts');
     } finally {
       setLoading(false);
@@ -118,7 +81,8 @@ const Receipts = () => {
     navigate('/receipt', {
       state: {
         receiptId: receiptId,
-        orderNumber: receiptNumber
+        orderNumber: receiptNumber,
+        isDemo: true
       }
     });
   };
@@ -126,7 +90,7 @@ const Receipts = () => {
   const downloadReceipt = (receipt: Receipt) => {
     const receiptContent = `
 BETMO ENTERPRISES
-Official Receipt
+Official Receipt (DEMO)
 
 Receipt Number: ${receipt.receipt_number}
 Date: ${new Date(receipt.created_at).toLocaleDateString()}
@@ -144,14 +108,15 @@ ${receipt.receipt_data.items.map(item =>
 Payment Method: ${receipt.receipt_data.payment_method}
 Total Amount: ${formatKES(receipt.receipt_data.total)}
 
-Thank you for your business!
+This is a demo transaction - no real payment was processed.
+Thank you for testing our system!
     `.trim();
 
     const blob = new Blob([receiptContent], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `receipt-${receipt.receipt_number}.txt`;
+    link.download = `demo-receipt-${receipt.receipt_number}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -175,14 +140,14 @@ Thank you for your business!
     <Layout>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Receipts</h1>
-          <p className="text-gray-600">View and download your purchase receipts</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Demo Receipts</h1>
+          <p className="text-gray-600">View and download your demo purchase receipts</p>
         </div>
 
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Receipt History</CardTitle>
+              <CardTitle>Receipt History (Demo Mode)</CardTitle>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
@@ -198,11 +163,11 @@ Thank you for your business!
             {filteredReceipts.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-500 mb-4">
-                  {receipts.length === 0 ? 'No receipts found' : 'No receipts match your search'}
+                  {receipts.length === 0 ? 'No demo receipts found' : 'No receipts match your search'}
                 </p>
                 {receipts.length === 0 && (
                   <Button onClick={() => navigate('/products')} variant="outline">
-                    Start Shopping
+                    Start Shopping (Demo)
                   </Button>
                 )}
               </div>
@@ -221,6 +186,9 @@ Thank you for your business!
                           </h3>
                           <span className="text-sm text-gray-500">
                             {new Date(receipt.created_at).toLocaleDateString()}
+                          </span>
+                          <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                            DEMO
                           </span>
                         </div>
                         <p className="text-gray-600 mb-1">

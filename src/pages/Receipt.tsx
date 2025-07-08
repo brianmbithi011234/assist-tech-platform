@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, Download, Home } from 'lucide-react';
 import Layout from '@/components/Layout';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { formatKES } from '@/utils/currency';
 
@@ -37,7 +36,7 @@ const Receipt = () => {
   const [receipt, setReceipt] = useState<ReceiptData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const { receiptId, orderNumber } = location.state || {};
+  const { receiptId, orderNumber, isDemo } = location.state || {};
 
   useEffect(() => {
     if (!receiptId) {
@@ -51,60 +50,31 @@ const Receipt = () => {
 
   const fetchReceipt = async () => {
     try {
-      console.log('Fetching receipt with ID:', receiptId);
+      console.log('Fetching demo receipt with ID:', receiptId);
       
-      const { data, error } = await supabase
-        .from('receipts')
-        .select('*')
-        .eq('id', receiptId)
-        .maybeSingle();
+      // Get receipts from localStorage for demo purposes
+      const demoReceipts = JSON.parse(localStorage.getItem('demoReceipts') || '[]');
+      const foundReceipt = demoReceipts.find((r: any) => r.id === receiptId);
 
-      if (error) {
-        console.error('Error fetching receipt:', error);
-        throw error;
-      }
-
-      if (!data) {
-        console.error('No receipt found with ID:', receiptId);
+      if (!foundReceipt) {
+        console.error('No demo receipt found with ID:', receiptId);
         throw new Error('Receipt not found');
       }
       
-      console.log('Receipt data fetched:', data);
+      console.log('Demo receipt data fetched:', foundReceipt);
       
-      // Type guard to ensure receipt_data is an object
-      if (!data.receipt_data || typeof data.receipt_data !== 'object' || Array.isArray(data.receipt_data)) {
-        console.error('Invalid receipt data structure:', data.receipt_data);
-        throw new Error('Invalid receipt data structure');
-      }
-      
-      // Cast to our expected type after validation
-      const receiptDataObj = data.receipt_data as Record<string, any>;
-      
-      // Transform the data to match our interface with proper fallbacks
+      // Transform the data to match our interface
       const transformedReceipt: ReceiptData = {
-        receipt_number: data.receipt_number,
-        receipt_data: {
-          order_id: receiptDataObj.order_id || '',
-          items: Array.isArray(receiptDataObj.items) ? receiptDataObj.items : [],
-          total: typeof receiptDataObj.total === 'number' ? receiptDataObj.total : 0,
-          currency: receiptDataObj.currency || 'KES',
-          payment_method: receiptDataObj.payment_method || 'Unknown',
-          customer: receiptDataObj.customer && typeof receiptDataObj.customer === 'object' 
-            ? {
-                name: receiptDataObj.customer.name || 'Customer',
-                email: receiptDataObj.customer.email || ''
-              }
-            : { name: 'Customer', email: '' },
-          timestamp: receiptDataObj.timestamp || data.created_at
-        },
-        created_at: data.created_at
+        receipt_number: foundReceipt.receipt_number,
+        receipt_data: foundReceipt.receipt_data,
+        created_at: foundReceipt.created_at
       };
       
       console.log('Transformed receipt:', transformedReceipt);
       setReceipt(transformedReceipt);
     } catch (error) {
-      console.error('Error fetching receipt:', error);
-      toast.error('Failed to load receipt. Please check your connection and try again.');
+      console.error('Error fetching demo receipt:', error);
+      toast.error('Failed to load receipt. This is a demo system.');
     } finally {
       setLoading(false);
     }
@@ -115,7 +85,7 @@ const Receipt = () => {
 
     const receiptContent = `
 BETMO ENTERPRISES
-Official Receipt
+Official Receipt (DEMO)
 
 Receipt Number: ${receipt.receipt_number}
 Date: ${new Date(receipt.created_at).toLocaleDateString()}
@@ -133,14 +103,15 @@ ${receipt.receipt_data.items.map(item =>
 Payment Method: ${receipt.receipt_data.payment_method}
 Total Amount: ${formatKES(receipt.receipt_data.total)}
 
-Thank you for your business!
+This is a demo transaction - no real payment was processed.
+Thank you for testing our system!
     `.trim();
 
     const blob = new Blob([receiptContent], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `receipt-${receipt.receipt_number}.txt`;
+    link.download = `demo-receipt-${receipt.receipt_number}.txt`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -165,8 +136,8 @@ Thank you for your business!
       <Layout>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Receipt not found</h2>
-            <p className="text-gray-600 mb-8">We couldn't find the receipt you're looking for.</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Demo Receipt not found</h2>
+            <p className="text-gray-600 mb-8">We couldn't find the demo receipt you're looking for.</p>
             <div className="space-x-4">
               <Button onClick={fetchReceipt} variant="outline">
                 Try Again
@@ -188,15 +159,20 @@ Thank you for your business!
         {/* Success Message */}
         <div className="text-center mb-8">
           <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Payment Successful!</h1>
-          <p className="text-gray-600">Your order has been processed successfully.</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Demo Payment Successful!</h1>
+          <p className="text-gray-600">Your demo order has been processed successfully.</p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4 inline-block">
+            <p className="text-sm text-blue-700">
+              This is a demo transaction - no real payment was processed.
+            </p>
+          </div>
         </div>
 
         {/* Receipt */}
         <Card className="max-w-2xl mx-auto">
           <CardHeader className="text-center bg-blue-50">
             <CardTitle className="text-2xl">BETMO ENTERPRISES</CardTitle>
-            <p className="text-sm text-gray-600">Official Receipt</p>
+            <p className="text-sm text-gray-600">Official Demo Receipt</p>
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-6">
@@ -251,7 +227,10 @@ Thank you for your business!
 
               {/* Footer */}
               <div className="border-t pt-4 text-center text-sm text-gray-600">
-                <p>Thank you for your business!</p>
+                <p className="bg-yellow-50 border border-yellow-200 rounded p-2 mb-2">
+                  This is a demo transaction - no real payment was processed.
+                </p>
+                <p>Thank you for testing our system!</p>
                 <p>For any inquiries, please contact our customer service.</p>
               </div>
             </div>
