@@ -57,11 +57,16 @@ const Receipt = () => {
         .from('receipts')
         .select('*')
         .eq('id', receiptId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching receipt:', error);
         throw error;
+      }
+
+      if (!data) {
+        console.error('No receipt found with ID:', receiptId);
+        throw new Error('Receipt not found');
       }
       
       console.log('Receipt data fetched:', data);
@@ -100,7 +105,6 @@ const Receipt = () => {
     } catch (error) {
       console.error('Error fetching receipt:', error);
       toast.error('Failed to load receipt. Please check your connection and try again.');
-      // Don't navigate away immediately, give user a chance to retry
     } finally {
       setLoading(false);
     }

@@ -10,7 +10,7 @@ export const getOrCreateProfile = async (userId: string, user: any) => {
         .from('profiles')
         .select('id')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (!error && profile) {
         return userId;
@@ -25,7 +25,7 @@ export const getOrCreateProfile = async (userId: string, user: any) => {
       .insert({
         id: newProfileId,
         email: user?.email || '',
-        full_name: (user as any)?.name || 'Customer',
+        full_name: (user as any)?.user_metadata?.full_name || (user as any)?.name || 'Customer',
       });
 
     if (insertError) {

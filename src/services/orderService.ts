@@ -48,12 +48,12 @@ export const createOrder = async (orderData: OrderData, user: any, shippingAddre
 
     console.log('Order created successfully:', order);
 
-    // Create order items - ensuring we don't pass invalid UUIDs
+    // Create order items with proper product references
     const orderItems = orderData.items.map(item => {
       console.log('Processing item for order:', item);
       return {
         order_id: order.id,
-        product_id: null, // We set this to null since cart items don't have valid UUIDs
+        product_id: item.id, // Use the actual product ID from the cart
         quantity: item.quantity,
         unit_price: item.price,
         total_price: item.price * item.quantity,
