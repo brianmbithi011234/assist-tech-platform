@@ -9,6 +9,7 @@ import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { formatKES } from '@/utils/currency';
+import { initializeDemoReceipts } from '@/utils/demoData';
 
 interface Receipt {
   id: string;
@@ -50,8 +51,8 @@ const Receipts = () => {
     try {
       console.log('Fetching demo receipts for user:', user);
       
-      // Get receipts from localStorage for demo purposes
-      const demoReceipts = JSON.parse(localStorage.getItem('demoReceipts') || '[]');
+      // Initialize demo receipts if none exist, then get them
+      const demoReceipts = initializeDemoReceipts();
       
       console.log('Demo receipts found:', demoReceipts);
       
