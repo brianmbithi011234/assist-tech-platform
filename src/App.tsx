@@ -19,6 +19,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminInventory from "./pages/admin/Inventory";
 import AdminOrders from "./pages/admin/Orders";
 import AdminServices from "./pages/admin/Services";
+import SalesReport from "./pages/admin/SalesReport";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="/admin/inventory" element={<AdminInventory />} />
               <Route path="/admin/orders" element={<AdminOrders />} />
               <Route path="/admin/services" element={<AdminServices />} />
+              <Route path="/admin/sales" element={<SalesReport />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

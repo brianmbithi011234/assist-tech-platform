@@ -1,5 +1,6 @@
 
-import { BarChart3, Package, ShoppingCart, Settings, Users } from 'lucide-react';
+import { BarChart3, Package, ShoppingCart, Settings, Users, TrendingUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Layout from '@/components/Layout';
@@ -84,8 +85,21 @@ const AdminDashboard = () => {
     <Layout>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600">Overview of your business operations</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+              <p className="text-gray-600">Overview of your business operations</p>
+            </div>
+            <div className="flex gap-3">
+              <Link
+                to="/admin/sales"
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                <TrendingUp className="h-4 w-4" />
+                Sales Report
+              </Link>
+            </div>
+          </div>
         </div>
 
         {/* Stats Grid */}
