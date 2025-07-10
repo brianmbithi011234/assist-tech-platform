@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, ShoppingBag, Users, Calendar, Loader } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ShoppingBag, Users, Calendar, Loader, FileText, Download } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatKES } from '@/utils/currency';
@@ -18,6 +19,8 @@ const SalesReport = () => {
   const [dailySalesData, setDailySalesData] = useState([]);
   const [categoryData, setCategoryData] = useState([]);
   const [topProducts, setTopProducts] = useState([]);
+  const [showDocumentReport, setShowDocumentReport] = useState(false);
+  const documentReportRef = useRef<HTMLDivElement>(null);
 
   if (!isAdmin) {
     return (
@@ -191,6 +194,82 @@ const SalesReport = () => {
     fetchSalesData();
   }, [timeRange]);
 
+  const generateDocumentReport = () => {
+    setShowDocumentReport(true);
+  };
+
+  const printReport = () => {
+    const printContent = documentReportRef.current;
+    if (printContent) {
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Sales Report - ${new Date().toLocaleDateString()}</title>
+              <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+                .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+                .stat-card { border: 1px solid #ddd; padding: 15px; border-radius: 5px; text-align: center; }
+                .products-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                .products-table th, .products-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+                .products-table th { background-color: #f5f5f5; }
+                @media print { body { margin: 0; } }
+              </style>
+            </head>
+            <body>
+              ${printContent.innerHTML}
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+      }
+    }
+  };
+
+  const downloadReport = () => {
+    const reportContent = documentReportRef.current;
+    if (reportContent) {
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Sales Report - ${new Date().toLocaleDateString()}</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+              .company-name { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+              .report-title { font-size: 20px; color: #666; }
+              .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin: 30px 0; }
+              .stat-card { border: 1px solid #ddd; padding: 15px; border-radius: 5px; text-align: center; }
+              .stat-value { font-size: 18px; font-weight: bold; color: #333; }
+              .stat-label { font-size: 12px; color: #666; text-transform: uppercase; }
+              .products-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              .products-table th, .products-table td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+              .products-table th { background-color: #f5f5f5; font-weight: bold; }
+              .section-title { font-size: 18px; font-weight: bold; margin: 30px 0 15px 0; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+            </style>
+          </head>
+          <body>
+            ${reportContent.innerHTML}
+          </body>
+        </html>
+      `;
+      
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sales-report-${new Date().toISOString().split('T')[0]}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  };
+
   const chartConfig = {
     sales: {
       label: "Sales",
@@ -226,19 +305,131 @@ const SalesReport = () => {
               <h1 className="text-3xl font-bold text-gray-900">Sales Report</h1>
               <p className="text-gray-600">Analyze your sales performance and trends</p>
             </div>
-            <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Select time range" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">Last 7 days</SelectItem>
-                <SelectItem value="30d">Last 30 days</SelectItem>
-                <SelectItem value="90d">Last 90 days</SelectItem>
-                <SelectItem value="1y">Last year</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-4">
+              <Button 
+                onClick={generateDocumentReport}
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Generate Document Report
+              </Button>
+              <Select value={timeRange} onValueChange={setTimeRange}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Select time range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7d">Last 7 days</SelectItem>
+                  <SelectItem value="30d">Last 30 days</SelectItem>
+                  <SelectItem value="90d">Last 90 days</SelectItem>
+                  <SelectItem value="1y">Last year</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
+
+        {/* Document Report Modal/Overlay */}
+        {showDocumentReport && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-y-auto w-full">
+              <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+                <h2 className="text-xl font-bold">Sales Report Document</h2>
+                <div className="flex gap-2">
+                  <Button onClick={printReport} variant="outline" size="sm">
+                    Print Report
+                  </Button>
+                  <Button onClick={downloadReport} variant="outline" size="sm">
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                  <Button onClick={() => setShowDocumentReport(false)} variant="outline" size="sm">
+                    Close
+                  </Button>
+                </div>
+              </div>
+              
+              <div ref={documentReportRef} className="p-8">
+                <div className="header">
+                  <div className="company-name">TechStore Kenya</div>
+                  <div className="report-title">Sales Report</div>
+                  <div style={{ fontSize: '14px', color: '#666', marginTop: '10px' }}>
+                    Period: {timeRange === '7d' ? 'Last 7 Days' : timeRange === '30d' ? 'Last 30 Days' : timeRange === '90d' ? 'Last 90 Days' : 'Last Year'}
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#666' }}>
+                    Generated on: {new Date().toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </div>
+                </div>
+
+                <div className="section-title">Sales Summary</div>
+                <div className="stats-grid">
+                  {salesStats.map((stat, index) => (
+                    <div key={index} className="stat-card">
+                      <div className="stat-label">{stat.title}</div>
+                      <div className="stat-value">{stat.value}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="section-title">Top Performing Products</div>
+                <table className="products-table">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Product Name</th>
+                      <th>Units Sold</th>
+                      <th>Total Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topProducts.map((product, index) => (
+                      <tr key={index}>
+                        <td>{index + 1}</td>
+                        <td>{product.name}</td>
+                        <td>{product.sales}</td>
+                        <td>{formatKES(product.revenue)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <div className="section-title">Category Performance</div>
+                <table className="products-table">
+                  <thead>
+                    <tr>
+                      <th>Category</th>
+                      <th>Revenue</th>
+                      <th>Percentage</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categoryData.map((category, index) => {
+                      const totalRevenue = categoryData.reduce((sum, cat) => sum + cat.value, 0);
+                      const percentage = totalRevenue > 0 ? ((category.value / totalRevenue) * 100).toFixed(1) : '0.0';
+                      return (
+                        <tr key={index}>
+                          <td>{category.name}</td>
+                          <td>{formatKES(category.value)}</td>
+                          <td>{percentage}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                <div style={{ marginTop: '40px', fontSize: '12px', color: '#666', textAlign: 'center' }}>
+                  This report was automatically generated by TechStore Kenya Admin Dashboard
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
