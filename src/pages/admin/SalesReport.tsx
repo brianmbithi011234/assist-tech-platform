@@ -1,17 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, TrendingDown, DollarSign, ShoppingBag, Users, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, ShoppingBag, Users, Calendar, Loader } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatKES } from '@/utils/currency';
+import { supabase } from '@/integrations/supabase/client';
 
 const SalesReport = () => {
   const { isAdmin } = useAuth();
   const [timeRange, setTimeRange] = useState('7d');
+  const [loading, setLoading] = useState(true);
+  const [salesStats, setSalesStats] = useState([]);
+  const [dailySalesData, setDailySalesData] = useState([]);
+  const [categoryData, setCategoryData] = useState([]);
+  const [topProducts, setTopProducts] = useState([]);
 
   if (!isAdmin) {
     return (
@@ -26,66 +32,164 @@ const SalesReport = () => {
     );
   }
 
-  // Demo sales data
-  const salesStats = [
-    {
-      title: 'Total Revenue',
-      value: formatKES(142580),
-      change: '+15.2%',
-      icon: DollarSign,
-      trend: 'up'
-    },
-    {
-      title: 'Total Orders',
-      value: '89',
-      change: '+8.1%',
-      icon: ShoppingBag,
-      trend: 'up'
-    },
-    {
-      title: 'New Customers',
-      value: '34',
-      change: '-2.4%',
-      icon: Users,
-      trend: 'down'
-    },
-    {
-      title: 'Avg Order Value',
-      value: formatKES(1603),
-      change: '+5.7%',
-      icon: Calendar,
-      trend: 'up'
+  const getDaysFromTimeRange = (range: string) => {
+    switch (range) {
+      case '7d': return 7;
+      case '30d': return 30;
+      case '90d': return 90;
+      case '1y': return 365;
+      default: return 7;
     }
-  ];
+  };
 
-  // Daily sales data for line chart
-  const dailySalesData = [
-    { date: '2025-01-03', sales: 12500, orders: 8 },
-    { date: '2025-01-04', sales: 18200, orders: 12 },
-    { date: '2025-01-05', sales: 15800, orders: 10 },
-    { date: '2025-01-06', sales: 22100, orders: 15 },
-    { date: '2025-01-07', sales: 19400, orders: 13 },
-    { date: '2025-01-08', sales: 25600, orders: 18 },
-    { date: '2025-01-09', sales: 28900, orders: 20 }
-  ];
+  const fetchSalesData = async () => {
+    setLoading(true);
+    try {
+      const days = getDaysFromTimeRange(timeRange);
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+      
+      // Fetch orders data
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          total_amount,
+          created_at,
+          user_id,
+          order_items (
+            quantity,
+            total_price,
+            product_id,
+            products (
+              name,
+              category
+            )
+          )
+        `)
+        .gte('created_at', startDate.toISOString())
+        .eq('status', 'completed');
 
-  // Product category sales data for pie chart
-  const categoryData = [
-    { name: 'Electronics', value: 45200, color: '#0088FE' },
-    { name: 'Accessories', value: 32100, color: '#00C49F' },
-    { name: 'Services', value: 28900, color: '#FFBB28' },
-    { name: 'Parts', value: 18400, color: '#FF8042' },
-    { name: 'Software', value: 17980, color: '#8884D8' }
-  ];
+      if (ordersError) throw ordersError;
 
-  // Top products data
-  const topProducts = [
-    { name: 'MacBook Pro 16"', sales: 28, revenue: 69720, trend: 'up' },
-    { name: 'iPhone 15 Pro', sales: 15, revenue: 14985, trend: 'up' },
-    { name: 'AirPods Pro', sales: 22, revenue: 6600, trend: 'down' },
-    { name: 'iPad Air', sales: 8, revenue: 4392, trend: 'up' },
-    { name: 'Apple Watch', sales: 12, revenue: 4788, trend: 'up' }
-  ];
+      // Calculate stats
+      const totalRevenue = orders?.reduce((sum, order) => sum + Number(order.total_amount), 0) || 0;
+      const totalOrders = orders?.length || 0;
+      const uniqueCustomers = new Set(orders?.map(order => order.user_id) || []).size;
+      const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+      setSalesStats([
+        {
+          title: 'Total Revenue',
+          value: formatKES(totalRevenue),
+          change: '+15.2%',
+          icon: DollarSign,
+          trend: 'up'
+        },
+        {
+          title: 'Total Orders',
+          value: totalOrders.toString(),
+          change: '+8.1%',
+          icon: ShoppingBag,
+          trend: 'up'
+        },
+        {
+          title: 'New Customers',
+          value: uniqueCustomers.toString(),
+          change: '-2.4%',
+          icon: Users,
+          trend: 'down'
+        },
+        {
+          title: 'Avg Order Value',
+          value: formatKES(avgOrderValue),
+          change: '+5.7%',
+          icon: Calendar,
+          trend: 'up'
+        }
+      ]);
+
+      // Process daily sales data
+      const dailySales: Record<string, { sales: number; orders: number }> = {};
+      orders?.forEach(order => {
+        const date = new Date(order.created_at).toISOString().split('T')[0];
+        if (!dailySales[date]) {
+          dailySales[date] = { sales: 0, orders: 0 };
+        }
+        dailySales[date].sales += Number(order.total_amount);
+        dailySales[date].orders += 1;
+      });
+
+      const dailyData = Object.entries(dailySales)
+        .map(([date, data]) => ({
+          date,
+          sales: data.sales,
+          orders: data.orders
+        }))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      setDailySalesData(dailyData);
+
+      // Process category data
+      const categoryRevenue: Record<string, number> = {};
+      orders?.forEach(order => {
+        order.order_items?.forEach(item => {
+          const category = item.products?.category || 'Other';
+          if (!categoryRevenue[category]) {
+            categoryRevenue[category] = 0;
+          }
+          categoryRevenue[category] += Number(item.total_price);
+        });
+      });
+
+      const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+      const categoryChartData = Object.entries(categoryRevenue)
+        .map(([name, value], index) => ({
+          name,
+          value: value as number,
+          color: colors[index % colors.length]
+        }))
+        .sort((a, b) => (b.value as number) - (a.value as number));
+
+      setCategoryData(categoryChartData);
+
+      // Process top products data
+      const productRevenue: Record<string, number> = {};
+      const productSales: Record<string, number> = {};
+      orders?.forEach(order => {
+        order.order_items?.forEach(item => {
+          const productName = item.products?.name || 'Unknown Product';
+          if (!productRevenue[productName]) {
+            productRevenue[productName] = 0;
+            productSales[productName] = 0;
+          }
+          productRevenue[productName] += Number(item.total_price);
+          productSales[productName] += item.quantity;
+        });
+      });
+
+      const topProductsData = Object.entries(productRevenue)
+        .map(([name, revenue]) => ({
+          name,
+          sales: productSales[name] as number,
+          revenue: revenue as number,
+          trend: 'up' as const
+        }))
+        .sort((a, b) => (b.revenue as number) - (a.revenue as number))
+        .slice(0, 5);
+
+      setTopProducts(topProductsData);
+
+    } catch (error) {
+      console.error('Error fetching sales data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSalesData();
+  }, [timeRange]);
 
   const chartConfig = {
     sales: {
@@ -97,6 +201,21 @@ const SalesReport = () => {
       color: "hsl(var(--chart-2))",
     },
   };
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="flex items-center gap-2">
+              <Loader className="h-6 w-6 animate-spin" />
+              <span>Loading sales data...</span>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -229,32 +348,38 @@ const SalesReport = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {topProducts.map((product, index) => (
-                <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center font-semibold text-sm">
-                      {index + 1}
+              {topProducts.length > 0 ? (
+                topProducts.map((product, index) => (
+                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center font-semibold text-sm">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <p className="font-medium">{product.name}</p>
+                        <p className="text-sm text-gray-600">{product.sales} units sold</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{product.name}</p>
-                      <p className="text-sm text-gray-600">{product.sales} units sold</p>
+                    <div className="flex items-center gap-4">
+                      <div className="text-right">
+                        <p className="font-semibold">{formatKES(product.revenue)}</p>
+                      </div>
+                      <Badge variant={product.trend === 'up' ? 'default' : 'secondary'}>
+                        {product.trend === 'up' ? (
+                          <TrendingUp className="h-3 w-3 mr-1" />
+                        ) : (
+                          <TrendingDown className="h-3 w-3 mr-1" />
+                        )}
+                        {product.trend === 'up' ? 'Rising' : 'Falling'}
+                      </Badge>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="font-semibold">{formatKES(product.revenue)}</p>
-                    </div>
-                    <Badge variant={product.trend === 'up' ? 'default' : 'secondary'}>
-                      {product.trend === 'up' ? (
-                        <TrendingUp className="h-3 w-3 mr-1" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3 mr-1" />
-                      )}
-                      {product.trend === 'up' ? 'Rising' : 'Falling'}
-                    </Badge>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  No sales data available for the selected time period
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>
